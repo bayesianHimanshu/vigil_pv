@@ -1,0 +1,4 @@
+# Extra deps needed only to deploy the agents to Vertex AI Agent Engine.
+# (The core pipeline uses ../requirements.txt.)
+google-cloud-aiplatform[agent_engines]>=1.95
+google-adk>=0.3

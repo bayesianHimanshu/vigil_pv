@@ -1,0 +1,782 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mresult.dev/vigil/agent-contracts/v1.json",
+  "title": "Project VIGIL - Agent I/O Contracts",
+  "version": "1.0.0",
+  "description": "Typed input/output contracts for every agent in the VIGIL pharmacovigilance pipeline. Shared structures live in $defs; the agent output objects map directly onto the JSON columns of agt_case_output / agt_step_event in the data model. Each schema is strict (additionalProperties:false) for compliance-grade validation.",
+  "$defs": {
+    "Confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Model self-reported confidence, 0.0-1.0"
+    },
+    "ISODate": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date",
+      "description": "ISO 8601 date (YYYY-MM-DD); null if not stated in the source"
+    },
+    "Sex": {
+      "type": "string",
+      "enum": [
+        "male",
+        "female",
+        "unknown"
+      ]
+    },
+    "Outcome": {
+      "type": "string",
+      "enum": [
+        "recovered",
+        "recovering",
+        "not_recovered",
+        "recovered_with_sequelae",
+        "fatal",
+        "unknown"
+      ]
+    },
+    "SeriousnessCriterion": {
+      "type": "string",
+      "enum": [
+        "death",
+        "life_threatening",
+        "hospitalization",
+        "disability",
+        "congenital_anomaly",
+        "other_medically_important"
+      ],
+      "description": "ICH E2B seriousness criteria; map to VAERS DIED/L_THREAT/HOSPITAL/DISABLE/BIRTH_DEFECT"
+    },
+    "Product": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "manufacturer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dose_series": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "route": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "suspect",
+            "concomitant"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "role"
+      ]
+    },
+    "ExtractedEvent": {
+      "type": "object",
+      "properties": {
+        "verbatim": {
+          "type": "string",
+          "description": "Event term exactly as written in the narrative"
+        },
+        "onset_date": {
+          "$ref": "#/$defs/ISODate"
+        },
+        "outcome": {
+          "$ref": "#/$defs/Outcome"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "verbatim"
+      ]
+    },
+    "ExtractedCase": {
+      "type": "object",
+      "properties": {
+        "patient": {
+          "type": "object",
+          "properties": {
+            "age_years": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "sex": {
+              "$ref": "#/$defs/Sex"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "sex"
+          ]
+        },
+        "products": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Product"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExtractedEvent"
+          }
+        },
+        "vaccination_date": {
+          "$ref": "#/$defs/ISODate"
+        },
+        "onset_date": {
+          "$ref": "#/$defs/ISODate"
+        },
+        "days_to_onset": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "concomitant_meds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "medical_history": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allergies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "patient",
+        "products",
+        "events"
+      ]
+    },
+    "CodedEvent": {
+      "type": "object",
+      "properties": {
+        "verbatim": {
+          "type": "string"
+        },
+        "meddra_pt": {
+          "type": "string",
+          "description": "Assigned MedDRA Preferred Term (from the derived in-scope PT list)"
+        },
+        "meddra_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "confidence": {
+          "$ref": "#/$defs/Confidence"
+        },
+        "requires_review": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "verbatim",
+        "meddra_pt",
+        "confidence"
+      ]
+    },
+    "CodingResult": {
+      "type": "object",
+      "properties": {
+        "coded": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CodedEvent"
+          }
+        },
+        "uncoded": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Verbatim events with no confident PT match"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "coded"
+      ]
+    },
+    "SeriousnessAssessment": {
+      "type": "object",
+      "properties": {
+        "serious": {
+          "type": "boolean"
+        },
+        "criteria_met": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SeriousnessCriterion"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "serious",
+        "criteria_met"
+      ]
+    },
+    "CausalityAssessment": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "WHO-UMC",
+            "Naranjo"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "certain",
+            "probable",
+            "possible",
+            "unlikely",
+            "conditional",
+            "unassessable"
+          ],
+          "description": "WHO-UMC causality category"
+        },
+        "score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Numeric score if method produces one (e.g. Naranjo)"
+        },
+        "rationale": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "category",
+        "rationale"
+      ]
+    },
+    "QCFlag": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "missing_field",
+            "inconsistency",
+            "temporal_anomaly",
+            "low_confidence_coding",
+            "unmapped_event"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "severity"
+      ]
+    },
+    "SignalRow": {
+      "type": "object",
+      "properties": {
+        "event_pt": {
+          "type": "string"
+        },
+        "a": {
+          "type": "integer",
+          "description": "cases with in-scope product AND event"
+        },
+        "b": {
+          "type": "integer"
+        },
+        "c": {
+          "type": "integer"
+        },
+        "d": {
+          "type": "integer"
+        },
+        "n_total": {
+          "type": "integer"
+        },
+        "prr": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ror": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "signal_flag": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_pt",
+        "a",
+        "b",
+        "c",
+        "d",
+        "prr",
+        "ror",
+        "signal_flag"
+      ]
+    }
+  },
+  "agents": {
+    "triage": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "vaers_id": {
+            "type": "string"
+          },
+          "narrative": {
+            "type": "string",
+            "description": "VAERS SYMPTOM_TEXT"
+          },
+          "received_date": {
+            "$ref": "#/$defs/ISODate"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "vaers_id",
+          "narrative"
+        ]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "description": "Meets the 4 minimum ICSR criteria"
+          },
+          "missing_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "identifiable_patient",
+                "identifiable_reporter",
+                "suspect_product",
+                "adverse_event"
+              ]
+            }
+          },
+          "seriousness_screen": {
+            "type": "object",
+            "properties": {
+              "serious": {
+                "type": "boolean"
+              },
+              "criteria_flagged": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/SeriousnessCriterion"
+                }
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "serious"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "expedited",
+              "standard",
+              "non_serious"
+            ]
+          },
+          "confidence": {
+            "$ref": "#/$defs/Confidence"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "valid",
+          "priority",
+          "confidence"
+        ]
+      }
+    },
+    "extraction": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "vaers_id": {
+            "type": "string"
+          },
+          "narrative": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "vaers_id",
+          "narrative"
+        ]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "case": {
+            "$ref": "#/$defs/ExtractedCase",
+            "description": "Persisted as agt_case_output.extracted"
+          },
+          "confidence": {
+            "$ref": "#/$defs/Confidence"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "case",
+          "confidence"
+        ]
+      }
+    },
+    "coding": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "vaers_id": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Verbatim events from extraction"
+          },
+          "grounding_candidates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Candidate PTs returned by Vertex AI Search"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "vaers_id",
+          "events"
+        ]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/$defs/CodingResult",
+            "description": "Persisted as agt_case_output.coded_detail; coded_pts = result.coded[*].meddra_pt"
+          },
+          "confidence": {
+            "$ref": "#/$defs/Confidence"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "confidence"
+        ]
+      }
+    },
+    "assessment": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "vaers_id": {
+            "type": "string"
+          },
+          "patient": {
+            "type": "object"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Product"
+            }
+          },
+          "coded_events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/CodedEvent"
+            }
+          },
+          "vaccination_date": {
+            "$ref": "#/$defs/ISODate"
+          },
+          "onset_date": {
+            "$ref": "#/$defs/ISODate"
+          },
+          "medical_history": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "vaers_id",
+          "coded_events"
+        ]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "seriousness": {
+            "$ref": "#/$defs/SeriousnessAssessment"
+          },
+          "causality": {
+            "$ref": "#/$defs/CausalityAssessment"
+          },
+          "confidence": {
+            "$ref": "#/$defs/Confidence"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "seriousness",
+          "causality",
+          "confidence"
+        ]
+      }
+    },
+    "narrative_qc": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "vaers_id": {
+            "type": "string"
+          },
+          "extracted": {
+            "$ref": "#/$defs/ExtractedCase"
+          },
+          "coded": {
+            "$ref": "#/$defs/CodingResult"
+          },
+          "seriousness": {
+            "$ref": "#/$defs/SeriousnessAssessment"
+          },
+          "causality": {
+            "$ref": "#/$defs/CausalityAssessment"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "vaers_id"
+        ]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "narrative": {
+            "type": "string"
+          },
+          "completeness": {
+            "type": "object",
+            "properties": {
+              "completeness_score": {
+                "$ref": "#/$defs/Confidence"
+              },
+              "gaps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "completeness_score"
+            ]
+          },
+          "qc_flags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/QCFlag"
+            }
+          },
+          "overall_confidence": {
+            "$ref": "#/$defs/Confidence"
+          },
+          "hitl_recommended": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "narrative",
+          "overall_confidence",
+          "hitl_recommended"
+        ]
+      }
+    },
+    "signal": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "Natural-language safety question"
+          },
+          "product_scope": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "min_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Minimum cell 'a' for flagging"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "question"
+        ]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "generated_sql": {
+            "type": "string",
+            "description": "Text-to-SQL against vw_signal_metrics"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/SignalRow"
+            }
+          },
+          "summary": {
+            "type": "string"
+          },
+          "caveats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "generated_sql",
+          "results",
+          "summary"
+        ]
+      }
+    }
+  },
+  "assembled_case": {
+    "type": "object",
+    "properties": {
+      "run_id": {
+        "type": "string"
+      },
+      "vaers_id": {
+        "type": "string"
+      },
+      "pipeline_version": {
+        "type": "string"
+      },
+      "extracted": {
+        "$ref": "#/$defs/ExtractedCase"
+      },
+      "coded_pts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Flattened MedDRA PTs (projection of coded_detail.coded[*].meddra_pt)"
+      },
+      "coded_detail": {
+        "$ref": "#/$defs/CodingResult"
+      },
+      "seriousness": {
+        "$ref": "#/$defs/SeriousnessAssessment"
+      },
+      "causality": {
+        "$ref": "#/$defs/CausalityAssessment"
+      },
+      "narrative": {
+        "type": "string"
+      },
+      "overall_confidence": {
+        "$ref": "#/$defs/Confidence"
+      },
+      "hitl_required": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "run_id",
+      "vaers_id",
+      "extracted",
+      "coded_pts",
+      "seriousness",
+      "causality",
+      "narrative",
+      "overall_confidence",
+      "hitl_required"
+    ]
+  }
+}
