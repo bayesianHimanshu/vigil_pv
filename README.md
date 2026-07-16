@@ -58,7 +58,7 @@ tests/
 - `pip install -r requirements.txt`
 - Download a VAERS year from https://vaers.hhs.gov/data/datasets.html
   (the zip contains `<YEAR>VAERSDATA.csv`, `<YEAR>VAERSVAX.csv`, `<YEAR>VAERSSYMPTOMS.csv`).
-- `cp .env.example .env`, edit it, then `source .env`. Create the BQ dataset:
+- Create the BQ dataset:
   `bq mk --location=$VIGIL_LOCATION $VIGIL_PROJECT:$VIGIL_DATASET`
 
 ## Run
